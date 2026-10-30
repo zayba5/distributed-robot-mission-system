@@ -1,3 +1,5 @@
+
+# Docker Compose configuration will be added during the initial implementation phase.
 FROM python:3.12-slim
 
 WORKDIR /app
