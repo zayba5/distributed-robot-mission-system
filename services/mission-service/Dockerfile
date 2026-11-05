@@ -1,14 +1,13 @@
-
-# Docker Compose configuration will be added during the initial implementation phase.
 FROM python:3.12-slim
 
 WORKDIR /app
 
 COPY requirements.txt .
+
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY app ./app
+COPY app.py .
 
-EXPOSE 8001
+EXPOSE 5000
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8001"]
+CMD ["python", "app.py"]
