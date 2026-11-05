@@ -1,10 +1,18 @@
-from flask import Flask, request, jsonify
-import psycopg2
 import os
 import threading
 import time
 
-app = Flask(__name__)
+import psycopg2
+from fastapi import FastAPI
+from pydantic import BaseModel
+
+
+app = FastAPI(title="Robot Simulator")
+
+
+class ExecutionRequest(BaseModel):
+    mission_id: int
+    robot_id: int
 
 
 def get_db():
@@ -12,85 +20,65 @@ def get_db():
         host=os.getenv("DB_HOST", "postgres"),
         database=os.getenv("DB_NAME", "robotdb"),
         user=os.getenv("DB_USER", "postgres"),
-        password=os.getenv("DB_PASSWORD", "postgres")
+        password=os.getenv("DB_PASSWORD", "postgres"),
     )
 
 
-@app.route("/health")
+@app.get("/health")
 def health():
-    return jsonify({"status": "healthy"})
+    return {"status": "healthy"}
 
 
-@app.route("/execute", methods=["POST"])
-def execute():
-    data = request.get_json()
-
-    mission_id = data["mission_id"]
-    robot_id = data["robot_id"]
-
+@app.post("/execute")
+def execute(request: ExecutionRequest):
     threading.Thread(
         target=run_mission,
-        args=(mission_id, robot_id),
-        daemon=True
+        args=(request.mission_id, request.robot_id),
+        daemon=True,
     ).start()
-
-    return jsonify({
-        "message": "Mission execution started"
-    })
+    return {"message": "Mission execution started"}
 
 
-def run_mission(mission_id, robot_id):
-    print(
-        f"Robot {robot_id} executing "
-        f"mission {mission_id}"
-    )
+def run_mission(mission_id: int, robot_id: int):
+    print(f"Robot {robot_id} executing mission {mission_id}")
 
-    # Simulate robot movement / work
     for step in range(1, 4):
         time.sleep(1)
-
         conn = get_db()
-        cur = conn.cursor()
-
-        cur.execute("""
-            UPDATE robots
-            SET x_position = %s,
-                y_position = %s,
-                last_telemetry = CURRENT_TIMESTAMP
-            WHERE id = %s;
-        """, (step, step, robot_id))
-
-        conn.commit()
-        cur.close()
-        conn.close()
-
-        print(
-            f"Robot {robot_id} telemetry: "
-            f"({step}, {step})"
-        )
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                """
+                UPDATE robots
+                SET x_position = %s, y_position = %s,
+                    last_telemetry = CURRENT_TIMESTAMP
+                WHERE id = %s;
+                """,
+                (step, step, robot_id),
+            )
+            conn.commit()
+            cur.close()
+        finally:
+            conn.close()
 
     conn = get_db()
-    cur = conn.cursor()
-
-    cur.execute("""
-        UPDATE missions
-        SET status = 'COMPLETED',
-            completed_at = CURRENT_TIMESTAMP
-        WHERE id = %s;
-    """, (mission_id,))
-
-    cur.execute("""
-        UPDATE robots
-        SET status = 'AVAILABLE'
-        WHERE id = %s;
-    """, (robot_id,))
-
-    conn.commit()
-    cur.close()
-    conn.close()
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            """
+            UPDATE missions
+            SET status = 'COMPLETED', completed_at = CURRENT_TIMESTAMP
+            WHERE id = %s;
+            """,
+            (mission_id,),
+        )
+        cur.execute(
+            "UPDATE robots SET status = 'AVAILABLE' WHERE id = %s;",
+            (robot_id,),
+        )
+        conn.commit()
+        cur.close()
+    finally:
+        conn.close()
 
     print(f"Mission {mission_id} completed")
-
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5002)
