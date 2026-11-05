@@ -1,0 +1,57 @@
+services:
+
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: robotdb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d robotdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  mission-service:
+    build: ./mission-service
+    ports:
+      - "5000:5000"
+    environment:
+      DB_HOST: postgres
+      DB_NAME: robotdb
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  scheduler-service:
+    build: ./scheduler-service
+    environment:
+      DB_HOST: postgres
+      DB_NAME: robotdb
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+    depends_on:
+      postgres:
+        condition: service_healthy
+      robot-simulator:
+        condition: service_started
+
+  robot-simulator:
+    build: ./robot-simulator
+    environment:
+      DB_HOST: postgres
+      DB_NAME: robotdb
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres-data:
+
