@@ -16,7 +16,7 @@ services:
       retries: 10
 
   mission-service:
-    build: ./mission-service
+    build: ./services/mission-service
     ports:
       - "5000:5000"
     environment:
@@ -29,7 +29,7 @@ services:
         condition: service_healthy
 
   scheduler-service:
-    build: ./scheduler-service
+    build: ./services/scheduler-service
     environment:
       DB_HOST: postgres
       DB_NAME: robotdb
@@ -42,7 +42,7 @@ services:
         condition: service_started
 
   robot-simulator:
-    build: ./robot-simulator
+    build: ./services/robot-simulator
     environment:
       DB_HOST: postgres
       DB_NAME: robotdb
