@@ -144,3 +144,15 @@ scripts/           Testing and operational scripts
 docs/              Architecture and project documentation
 tests/             Unit, integration, and concurrency tests
 monitoring/        Prometheus and Grafana configuration
+
+## Design review
+
+The design-review checkpoint is documented in `docs/design-review.md`. It
+covers service instance counts, failure impact, state placement, scaling
+limits, data ownership, consistency, and the dominant cost at 10x load.
+
+Run the repository checks with:
+
+```bash
+python3 scripts/design_review_check.py
+```
