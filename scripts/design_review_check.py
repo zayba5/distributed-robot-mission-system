@@ -1,9 +1,4 @@
-"""Static checks for the design-review checkpoint.
 
-This does not replace the Docker smoke test. It verifies that the repository
-contains the documented runtime pieces and that the Compose build paths match
-the repository layout.
-"""
 
 from pathlib import Path
 
